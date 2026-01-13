@@ -215,7 +215,7 @@ async function matchBrollToSegment(segmentText, brollDescriptions) {
     }).then(res => res.data[0].embedding);
 
     const similarity = cosineSimilarity(segmentEmbedding, brollEmbedding);
-    if (similarity > bestMatch.score && similarity > 0.5) {
+    if (similarity > bestMatch.score && similarity > 0.4) {
       bestMatch = { id: broll.id, score: similarity, reason: `Semantic match between "${segmentText}" and "${broll.description}"` };
     }
   }
@@ -310,23 +310,21 @@ app.post('/generate-plan', async (req, res) => {
     const insertions = [];
     let lastInsertEnd = 0;
     for (const segment of segments) {
-      if (segment.start - lastInsertEnd < 5) continue;
-      if (segment.end - segment.start < 2) continue;
-      const nextStart = segments[segments.indexOf(segment) + 1]?.start || aRollDuration;
-      if (nextStart - segment.end > 1) {
-        const match = await matchBrollToSegment(segment.text, brollDescriptions);
-        if (match.id) {
-          const broll = brollDescriptions.find(b => b.id === match.id);
-          const duration = Math.min(broll.duration, 5);
-          insertions.push({
-            start_sec: segment.end,
-            duration_sec: duration,
-            broll_id: match.id,
-            confidence: match.score,
-            reason: match.reason
-          });
-          lastInsertEnd = segment.end + duration;
-        }
+      if (segment.start - lastInsertEnd < 3) continue;
+      if (segment.end - segment.start < 1) continue;
+      
+      const match = await matchBrollToSegment(segment.text, brollDescriptions);
+      if (match.id) {
+        const broll = brollDescriptions.find(b => b.id === match.id);
+        const duration = Math.min(broll.duration, 5);
+        insertions.push({
+          start_sec: segment.start,
+          duration_sec: duration,
+          broll_id: match.id,
+          confidence: match.score,
+          reason: match.reason
+        });
+        lastInsertEnd = segment.start + duration;
       }
     }
     
@@ -423,23 +421,21 @@ app.post('/generate-plan-from-urls', async (req, res) => {
     const insertions = [];
     let lastInsertEnd = 0;
     for (const segment of segments) {
-      if (segment.start - lastInsertEnd < 5) continue;
-      if (segment.end - segment.start < 2) continue;
-      const nextStart = segments[segments.indexOf(segment) + 1]?.start || aRollDuration;
-      if (nextStart - segment.end > 1) {
-        const match = await matchBrollToSegment(segment.text, brollDescriptions);
-        if (match.id) {
-          const broll = brollDescriptions.find(b => b.id === match.id);
-          const duration = Math.min(broll.duration, 5);
-          insertions.push({
-            start_sec: segment.end,
-            duration_sec: duration,
-            broll_id: match.id,
-            confidence: match.score,
-            reason: match.reason
-          });
-          lastInsertEnd = segment.end + duration;
-        }
+      if (segment.start - lastInsertEnd < 3) continue;
+      if (segment.end - segment.start < 1) continue;
+      
+      const match = await matchBrollToSegment(segment.text, brollDescriptions);
+      if (match.id) {
+        const broll = brollDescriptions.find(b => b.id === match.id);
+        const duration = Math.min(broll.duration, 5);
+        insertions.push({
+          start_sec: segment.start,
+          duration_sec: duration,
+          broll_id: match.id,
+          confidence: match.score,
+          reason: match.reason
+        });
+        lastInsertEnd = segment.start + duration;
       }
     }
 
